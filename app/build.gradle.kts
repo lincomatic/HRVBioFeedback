@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "com.hrv.biofeedback"
-        minSdk = 33
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
@@ -81,9 +81,9 @@ dependencies {
     ksp("androidx.room:room-compiler:2.7.1")
 
     // Polar BLE SDK (via JitPack)
-    implementation("com.github.polarofficial:polar-ble-sdk:7.0.0")
+    implementation("com.github.polarofficial:polar-ble-sdk:8.6.0")
 
-    // Note: Polar SDK v7 is coroutine-native, no RxJava needed
+    // Note: Polar SDK v8 is coroutine-native, no RxJava needed
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")

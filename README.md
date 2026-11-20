@@ -131,14 +131,14 @@ Polar H10
 - **Hilt** for dependency injection
 - **Room** for session persistence with additive migrations
 - **DataStore** for user preferences and profile
-- **Polar BLE SDK 7.0.0** (coroutine/Flow-based)
+- **Polar BLE SDK 8.6.0** (coroutine/Flow-based)
 - All DSP is pure Kotlin (no native/C dependencies)
 
 ## Building
 
 ```bash
 # Requires Android Studio with JDK 17+
-# minSdk 33 (Android 13+)
+# minSdk 26 (Android 8+)
 
 git clone https://github.com/jlamprou/HRVBioFeedback.git
 cd HRVBioFeedback
