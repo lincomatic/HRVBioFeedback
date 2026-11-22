@@ -54,6 +54,7 @@ import com.hrv.biofeedback.presentation.theme.CoherenceHigh
 import com.hrv.biofeedback.presentation.theme.CoherenceLow
 import com.hrv.biofeedback.presentation.theme.CoherenceMedium
 import com.hrv.biofeedback.presentation.theme.LfPowerColor
+import com.hrv.biofeedback.presentation.theme.Secondary
 import com.hrv.biofeedback.presentation.theme.TextSecondary
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -327,6 +328,49 @@ fun TrainingSessionScreen(
                             label = "SDNN",
                             value = "%.1f".format(metrics.sdnn),
                             unit = "ms",
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "Coherence",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = TextSecondary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        MetricCard(
+                            label = "Score",
+                            value = "%.2f".format(metrics.coherenceScore),
+                            unit = "",
+                            valueColor = when (metrics.coherenceLevel) {
+                                com.hrv.biofeedback.domain.model.CoherenceLevel.HIGH -> CoherenceHigh
+                                com.hrv.biofeedback.domain.model.CoherenceLevel.MEDIUM -> CoherenceMedium
+                                com.hrv.biofeedback.domain.model.CoherenceLevel.LOW -> CoherenceLow
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        MetricCard(
+                            label = "CR Coh",
+                            value = "%.2f".format(metrics.cardiorespCoherence),
+                            unit = "",
+                            valueColor = Secondary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        MetricCard(
+                            label = "Phase",
+                            value = "%.1f".format(metrics.cardiorespPhase),
+                            unit = "\u00B0",
                             modifier = Modifier.weight(1f)
                         )
                     }

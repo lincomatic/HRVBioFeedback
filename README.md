@@ -148,6 +148,9 @@ cd HRVBioFeedback
 
 # Build debug APK
 ./gradlew assembleDebug
+
+# Build an optimized benchmark APK using the debug signing key
+./gradlew assembleBenchmark
 ```
 
 ## Validation

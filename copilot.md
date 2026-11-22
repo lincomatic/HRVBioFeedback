@@ -135,3 +135,50 @@ The repository saves every fifth metrics snapshot to limit database growth while
 `app/src/test/java/com/hrv/biofeedback/domain/dsp/SyntheticValidatorTest.kt` provides synthetic unit validation for the DSP modules.
 
 The README describes the suite as 26 validation tests covering signal frequency, amplitude, artifact correction, nonlinear metric identities, edge cases, and numerical stability.
+
+## Sensor Stream Reliability TODO
+
+### Analysis
+
+The Polar H10 connection can remain active while the application data display appears to freeze or stop updating. Current code has several throughput and lifecycle risks:
+
+- ViewModels launch HR, ECG, and accelerometer collectors in `viewModelScope`, whose default dispatcher is the main thread.
+- Every HR packet calls the full `HrvProcessor.processRrInterval()` pipeline synchronously. After enough data is collected, this includes resampling, spectral analysis, nonlinear metrics, respiratory extraction, and cross-spectral coherence.
+- ACC data may arrive at up to 200 Hz. Once the accelerometer buffer is full, each sample removes the first item from a 12,000-item `ArrayList`, repeatedly shifting the remaining items.
+- Training screens copy and publish the complete breathing waveform for every ACC sample, adding allocation and UI-state work at sensor frequency.
+- ECG ingestion periodically performs R-peak detection across a substantial buffer.
+- Most stream failures use silent `.catch { }` handlers and do not expose state, log the failure, restart the stream, or reconnect.
+- `SessionForegroundService` exists, but no active-session code currently starts it.
+- A short debugger observation confirmed Polar delivered one RR interval in an observed HR packet, but did not run long enough to measure sustained packet loss. The synchronous main-thread workload remains capable of blocking packet processing and UI updates.
+
+### Prioritized TODO
+
+- [ ] **Move sensor processing off the main thread.** Collect and process raw sensor streams on `Dispatchers.Default`, while publishing only final state changes on the UI-visible flows.
+- [ ] **Preserve every incoming sample.** Stream collection, RR timestamps, artifact decisions, and raw RR persistence must remain lossless before any throttling is introduced.
+- [ ] **Add sustained stream-cadence instrumentation.** Track HR packet timestamps, packet gaps, RR count, processing duration, and the expected-versus-observed sample count during a long session.
+- [ ] **Throttle expensive derived calculations.**
+  - Keep artifact detection, raw RR storage, and inexpensive time-domain updates per heartbeat.
+  - Recalculate spectral and respiratory metrics at roughly 1 Hz rather than once for every duplicate RR in an incoming packet.
+  - Recalculate nonlinear metrics less frequently, initially every 5 seconds.
+  - Continue publishing a regular metric timeline while retaining the latest calculated values between expensive recomputations.
+  - Run uncached definitive analysis from the complete RR series at session completion.
+  - Keep final RF assessment step analysis uncached and based on the complete step data.
+- [ ] **Replace mutable-list shifting in the sensor buffers.** Use fixed-size ring buffers for ACC and ECG data, avoiding repeated `removeAt(0)` operations on large lists.
+- [ ] **Downsample ACC data before UI publication.** Publish only the reduced waveform needed by the chart, rather than copying and emitting a full list at 200 Hz.
+- [ ] **Reduce ECG work on the ingestion path.** Queue recent ECG samples and perform R-peak detection at a controlled cadence on a background dispatcher.
+- [ ] **Add watchdog and recovery behavior.** Detect stale HR/ACC/ECG streams independently, log failures, expose stream health, and restart the affected Polar stream without discarding the existing device connection.
+- [ ] **Replace silent stream-error handlers.** Record and surface errors in a consistent state rather than swallowing exceptions in `.catch { }`.
+- [ ] **Start and stop the foreground service with active sessions.** Tie `SessionForegroundService` to session lifecycle so Android keeps BLE collection active while the screen is off or the app is backgrounded.
+- [ ] **Validate output equivalence after throttling.** Compare live throttled metrics against full per-beat recomputation and verify that final definitive results are unchanged.
+- [ ] **Add stream reliability tests.** Exercise a simulated 1 Hz HR stream alongside 130 Hz ECG and 200 Hz ACC input, asserting no dropped RR samples, bounded processing latency, and recovery after a stream failure.
+
+### Throttling Correctness Constraint
+
+Throttling is safe only when it limits the frequency of **derived calculations**. It must not discard, skip, merge, or delay storage of sensor samples. The expected behavior is:
+
+1. Ingest every HR/RR, ECG, and ACC sample.
+2. Store every RR interval and its timestamp.
+3. Update inexpensive metrics immediately.
+4. Refresh expensive derived metrics on a controlled schedule.
+5. Reuse the latest derived values between refreshes.
+6. Compute final session metrics from all collected RR intervals.
