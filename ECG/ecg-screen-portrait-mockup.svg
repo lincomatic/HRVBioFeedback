@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="1520" viewBox="0 0 760 1520">
+  <defs>
+    <pattern id="minorGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#dce8ed" stroke-width="1"/>
+    </pattern>
+    <pattern id="majorGrid" width="100" height="100" patternUnits="userSpaceOnUse">
+      <rect width="100" height="100" fill="url(#minorGrid)"/>
+      <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#b7ccd4" stroke-width="1.5"/>
+    </pattern>
+    <filter id="buttonShadow" x="-10%" y="-20%" width="120%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000" flood-opacity=".25"/>
+    </filter>
+  </defs>
+
+  <rect width="760" height="1520" rx="42" fill="#090d12"/>
+  <rect x="24" y="24" width="712" height="1472" rx="30" fill="#121920"/>
+
+  <path d="M64 79l-10 10 10 10M54 89h30" fill="none"
+        stroke="#d9e1e7" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="380" y="98" text-anchor="middle" fill="#f4f7fa"
+        font-family="Segoe UI, Arial, sans-serif" font-size="29" font-weight="700">ECG</text>
+  <circle cx="679" cy="88" r="8" fill="#64db9b"/>
+  <text x="658" y="94" text-anchor="end" fill="#aeb9c4"
+        font-family="Segoe UI, Arial, sans-serif" font-size="15">LIVE</text>
+
+  <rect x="44" y="132" width="672" height="1050" rx="20" fill="#f4fafb"/>
+  <rect x="96" y="160" width="596" height="968" fill="url(#majorGrid)" rx="4"/>
+
+  <text x="72" y="188" text-anchor="middle" fill="#788790"
+        font-family="Segoe UI, Arial, sans-serif" font-size="13">0.9</text>
+  <text x="72" y="288" text-anchor="middle" fill="#788790"
+        font-family="Segoe UI, Arial, sans-serif" font-size="13">0.6</text>
+  <text x="72" y="388" text-anchor="middle" fill="#788790"
+        font-family="Segoe UI, Arial, sans-serif" font-size="13">0.3</text>
+  <text x="72" y="488" text-anchor="middle" fill="#788790"
+        font-family="Segoe UI, Arial, sans-serif" font-size="13">0</text>
+  <text x="72" y="588" text-anchor="middle" fill="#788790"
+        font-family="Segoe UI, Arial, sans-serif" font-size="13">-0.3</text>
+  <text x="72" y="688" text-anchor="middle" fill="#788790"
+        font-family="Segoe UI, Arial, sans-serif" font-size="13">-0.6</text>
+  <text x="72" y="786" text-anchor="middle" fill="#788790"
+        font-family="Segoe UI, Arial, sans-serif" font-size="13">-0.9</text>
+
+  <text x="124" y="1150" fill="#82919a"
+        font-family="Segoe UI, Arial, sans-serif" font-size="13">-8 s</text>
+  <text x="286" y="1150" fill="#82919a"
+        font-family="Segoe UI, Arial, sans-serif" font-size="13">-6 s</text>
+  <text x="474" y="1150" fill="#82919a"
+        font-family="Segoe UI, Arial, sans-serif" font-size="13">-4 s</text>
+  <text x="648" y="1150" fill="#82919a"
+        font-family="Segoe UI, Arial, sans-serif" font-size="13">now</text>
+
+  <text x="116" y="220" fill="#e5394f"
+        font-family="Segoe UI, Arial, sans-serif" font-size="68" font-weight="800">67</text>
+  <text x="196" y="216" fill="#e5394f"
+        font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="650">BPM</text>
+
+  <path d="
+    M96 700
+    L110 700 117 695 126 703 136 697 144 700 153 696 160 702
+    L169 698 178 686 186 670 194 650 201 860 207 520 215 700
+    L226 728 234 700 243 674 252 693 262 700 273 703 284 700
+    L295 698 306 703 315 696 326 700 337 698 346 694 354 702
+    L363 698 372 682 380 666 388 646 395 864 402 515 410 700
+    L420 732 429 700 438 675 448 692 459 700 469 703 479 700
+    L490 702 501 697 512 702 522 698 532 694 542 700 552 696
+    L562 684 571 666 580 645 587 864 594 510 602 700
+    L612 730 621 700 630 676 640 691 651 700 661 702 672 698
+    L682 703 692 697"
+    fill="none" stroke="#1687e8" stroke-width="4.5"
+    stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="44" y="1206" width="672" height="74" rx="16" fill="#202933"/>
+  <circle cx="70" cy="1243" r="7" fill="#64db9b"/>
+  <text x="90" y="1240" fill="#e8edf2"
+        font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="650">130 samples/sec</text>
+  <text x="90" y="1262" fill="#8f9ca8"
+        font-family="Segoe UI, Arial, sans-serif" font-size="14">Buffer: 60 seconds</text>
+  <text x="690" y="1250" text-anchor="end" fill="#64db9b"
+        font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="650">Streaming</text>
+
+  <g filter="url(#buttonShadow)">
+    <rect x="44" y="1306" width="204" height="96" rx="18" fill="#1b3e52"/>
+    <path d="M121 1332v40M137 1332v40" stroke="#72c8e8" stroke-width="8" stroke-linecap="round"/>
+    <text x="188" y="1359" text-anchor="middle" fill="#8ad9f7"
+          font-family="Segoe UI, Arial, sans-serif" font-size="21" font-weight="700">Pause</text>
+    <text x="188" y="1382" text-anchor="middle" fill="#77a9bd"
+          font-family="Segoe UI, Arial, sans-serif" font-size="13">Plot only</text>
+
+    <rect x="264" y="1306" width="204" height="96" rx="18" fill="#46262d"/>
+    <rect x="310" y="1336" width="32" height="32" rx="6" fill="#f07883"/>
+    <text x="420" y="1359" text-anchor="middle" fill="#ff939c"
+          font-family="Segoe UI, Arial, sans-serif" font-size="21" font-weight="700">Stop</text>
+    <text x="420" y="1382" text-anchor="middle" fill="#b8878d"
+          font-family="Segoe UI, Arial, sans-serif" font-size="13">End stream</text>
+
+    <rect x="484" y="1306" width="232" height="96" rx="18" fill="#183f34"/>
+    <circle cx="536" cy="1352" r="17" fill="#ff5f70"/>
+    <circle cx="536" cy="1352" r="8" fill="#7e2933"/>
+    <text x="632" y="1359" text-anchor="middle" fill="#8ce0b5"
+          font-family="Segoe UI, Arial, sans-serif" font-size="21" font-weight="700">Record</text>
+    <text x="632" y="1382" text-anchor="middle" fill="#72ae8c"
+          font-family="Segoe UI, Arial, sans-serif" font-size="13">Includes buffer</text>
+  </g>
+
+  <text x="380" y="1441" text-anchor="middle" fill="#83909c"
+        font-family="Segoe UI, Arial, sans-serif" font-size="14">
+    Pause/Stop enables chart pinch-to-zoom and horizontal pan
+  </text>
+  <text x="380" y="1468" text-anchor="middle" fill="#626f7c"
+        font-family="Segoe UI, Arial, sans-serif" font-size="13">
+    ECG acquisition continues while plotting is paused
+  </text>
+</svg>
