@@ -656,3 +656,27 @@ Stages 1-6 are being implemented.
 - Where the H10 HR packet includes RR intervals, the latest native RR interval
   is retained for heartbeat-sized viewport scrolling. Otherwise, RR timing
   falls back to 60,000 divided by the native HR.
+
+### Stage 8 UI Integration
+
+- The ECG route is registered at `ecg` and is opened from the main-screen ECG
+  card.
+- The main-screen card layout is:
+  - Find RF | Live Metrics
+  - Full Report | ECG
+- The ECG screen has:
+  - the large chart;
+  - the native H10 HR/BPM overlay;
+  - Pause/Resume, Stop, and Record controls;
+  - portrait controls below the chart;
+  - landscape controls in a left-side rail.
+- A `EcgViewModel` observes the singleton `EcgSessionCoordinator`; it does not
+  own or restart Polar stream subscriptions.
+- Entering the ECG screen starts the foreground service and requests acquisition
+  through the singleton coordinator.
+- Leaving the screen while acquisition remains active does not cancel the
+  foreground service on that screen's composition-disposal callback.
+- The foreground notification currently reopens `MainActivity`; direct
+  notification routing to the `ecg` route is a release-hardening follow-up
+  rather than a dependency of the chart-domain implementation.
+- The notification text distinguishes ECG-only streaming from active recording.

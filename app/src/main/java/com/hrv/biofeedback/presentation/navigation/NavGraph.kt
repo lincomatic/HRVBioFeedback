@@ -17,6 +17,7 @@ import com.hrv.biofeedback.presentation.morning.MorningCheckScreen
 import com.hrv.biofeedback.presentation.report.SessionReportScreen
 import com.hrv.biofeedback.presentation.settings.SettingsScreen
 import com.hrv.biofeedback.presentation.training.TrainingSessionScreen
+import com.hrv.biofeedback.presentation.ecg.EcgScreen
 
 @Composable
 fun NavGraph(navController: NavHostController) {
@@ -35,6 +36,7 @@ fun NavGraph(navController: NavHostController) {
                 onNavigateToEvaluation = { navController.navigate(NavRoutes.Evaluation.route) },
                 onNavigateToHistory = { navController.navigate(NavRoutes.History.route) },
                 onNavigateToSettings = { navController.navigate(NavRoutes.Settings.route) },
+                onNavigateToEcg = { navController.navigate(NavRoutes.Ecg.route) },
                 onNavigateToReport = { sessionId ->
                     navController.navigate(NavRoutes.SessionReport.createRoute(sessionId))
                 }
@@ -47,6 +49,10 @@ fun NavGraph(navController: NavHostController) {
 
         composable(NavRoutes.LiveMetrics.route) {
             LiveMetricsScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(NavRoutes.Ecg.route) {
+            EcgScreen(onBack = { navController.popBackStack() })
         }
 
         composable(NavRoutes.MorningCheck.route) {

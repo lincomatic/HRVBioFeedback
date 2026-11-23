@@ -14,4 +14,5 @@ sealed class NavRoutes(val route: String) {
     data object FreeTraining : NavRoutes("free_training")
     data object Evaluation : NavRoutes("evaluation")
     data object Settings : NavRoutes("settings")
+    data object Ecg : NavRoutes("ecg")
 }

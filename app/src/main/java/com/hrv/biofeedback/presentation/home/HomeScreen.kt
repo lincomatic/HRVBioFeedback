@@ -51,6 +51,7 @@ import com.hrv.biofeedback.presentation.theme.CardDark
 import com.hrv.biofeedback.presentation.theme.ChartLine
 import com.hrv.biofeedback.presentation.theme.CoherenceHigh
 import com.hrv.biofeedback.presentation.theme.LfPowerColor
+import com.hrv.biofeedback.presentation.theme.HfPowerColor
 import com.hrv.biofeedback.presentation.theme.Primary
 import com.hrv.biofeedback.presentation.theme.TextSecondary
 import java.text.SimpleDateFormat
@@ -69,6 +70,7 @@ fun HomeScreen(
     onNavigateToEvaluation: () -> Unit,
     onNavigateToHistory: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToEcg: () -> Unit,
     onNavigateToReport: (Long) -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
@@ -230,7 +232,7 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Assessment
+            // Assessment + Live Metrics
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -242,15 +244,6 @@ fun HomeScreen(
                     onClick = onNavigateToAssessment,
                     modifier = Modifier.weight(1f)
                 )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Live metrics & Evaluation
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
                 ActionCard(
                     title = "Live Metrics",
                     icon = Icons.Filled.ShowChart,
@@ -258,11 +251,27 @@ fun HomeScreen(
                     onClick = onNavigateToLive,
                     modifier = Modifier.weight(1f)
                 )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Full Report + ECG
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 ActionCard(
                     title = "Full Report",
                     icon = Icons.Filled.List,
                     color = LfPowerColor,
                     onClick = onNavigateToEvaluation,
+                    modifier = Modifier.weight(1f)
+                )
+                ActionCard(
+                    title = "ECG",
+                    icon = Icons.Filled.ShowChart,
+                    color = HfPowerColor,
+                    onClick = onNavigateToEcg,
                     modifier = Modifier.weight(1f)
                 )
             }
