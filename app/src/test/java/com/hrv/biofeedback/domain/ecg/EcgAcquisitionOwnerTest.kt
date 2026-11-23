@@ -98,6 +98,24 @@ class EcgAcquisitionOwnerTest {
     }
 
     @Test
+    fun `gesture pauses live plot and stopped state stays stopped`() = runTest {
+        val dataSource = FakeHrDataSource(
+            ecgSamples = listOf(EcgSample(1_000_000_000, 100))
+        )
+        val owner = EcgAcquisitionOwner(dataSource, this)
+
+        owner.start()
+        advanceUntilIdle()
+        owner.pausePlotFromGesture()
+        assertEquals(EcgPlotState.PAUSED, owner.sessionState.value.plot)
+
+        owner.stop()
+        owner.pausePlotFromGesture()
+        assertEquals(EcgPlotState.STOPPED, owner.sessionState.value.plot)
+        owner.close()
+    }
+
+    @Test
     fun `ecg stream completion does not produce duplicate ownership`() = runTest {
         val dataSource = FakeHrDataSource(
             ecgSamples = listOf(EcgSample(1_000_000_000, 100))

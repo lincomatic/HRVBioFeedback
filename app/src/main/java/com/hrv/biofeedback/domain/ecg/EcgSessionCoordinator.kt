@@ -41,6 +41,8 @@ class EcgSessionCoordinator @Inject constructor(
 
     fun resumePlot() = owner.resumePlot()
 
+    fun pausePlotFromGesture() = owner.pausePlotFromGesture()
+
     fun toggleRecording(recordStartMillis: Long = System.currentTimeMillis()) =
         owner.toggleRecording(recordStartMillis)
 

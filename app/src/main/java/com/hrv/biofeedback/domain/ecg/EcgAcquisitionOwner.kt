@@ -76,6 +76,11 @@ class EcgAcquisitionOwner(
         publishSnapshot()
     }
 
+    fun pausePlotFromGesture() {
+        if (_sessionState.value.acquisition is EcgAcquisitionState.Stopped) return
+        _sessionState.value = _sessionState.value.copy(plot = EcgPlotState.PAUSED)
+    }
+
     fun clearBuffer() {
         buffer.clear()
         publishSnapshot()
@@ -157,7 +162,8 @@ class EcgAcquisitionOwner(
                 }
                 .collect { sample ->
                     _sessionState.value = _sessionState.value.copy(
-                        heartRateBpm = sample.hr
+                        heartRateBpm = sample.hr,
+                        latestRrIntervalMs = sample.rrsMs.lastOrNull()
                     )
                 }
         }

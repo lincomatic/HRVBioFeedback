@@ -28,5 +28,6 @@ data class EcgSessionState(
     val acquisition: EcgAcquisitionState = EcgAcquisitionState.Idle,
     val plot: EcgPlotState = EcgPlotState.LIVE,
     val recording: EcgRecordingState = EcgRecordingState.Idle,
-    val heartRateBpm: Int? = null
+    val heartRateBpm: Int? = null,
+    val latestRrIntervalMs: Int? = null
 )

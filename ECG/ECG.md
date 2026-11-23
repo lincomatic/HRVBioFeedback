@@ -216,14 +216,23 @@ The implicit file format constants are:
 
 ## 8. Paused and Stopped Plot Inspection
 
-Chart gestures are enabled only while plotting is paused or acquisition is
-stopped.
+Chart gestures are enabled in Live, Paused, and Stopped plot states.
 
+- If a two-finger pinch or a one-finger horizontal drag begins while the plot
+  state is Live, that gesture automatically switches the plot to Paused.
+- Gesturing in Live mode pauses plotting only; ECG acquisition and active
+  recording continue.
+- While paused or stopped:
+  - a two-finger pinch zooms/unzooms the X-axis;
+  - a one-finger horizontal drag pans horizontally through retained data.
+- In Live mode, the beginning of a pan or pinch is the user action that pauses
+  plotting. The gesture then controls the same viewport in Paused state.
+- In Stopped state, the gesture remains in Stopped state and does not restart
+  acquisition.
 - A two-finger pinch zooms/unzooms the X-axis.
 - A single-finger left/right drag pans horizontally through retained data.
 - Gestures affect only the viewport, not the acquisition stream, buffer, or
   recording.
-- Live plotting ignores these gestures.
 - Panning is bounded by the data currently retained in the circular buffer.
 - Rotation must preserve pause state, stop state, zoom, and the selected
   viewport where practical.
@@ -287,7 +296,8 @@ acquisition and active recording continue, while rendering remains stopped.
   alignment.
 - Pause freezes plotting but not acquisition or recording.
 - Stop ends acquisition and preserves buffered data for inspection.
-- Pinch zoom and horizontal pan work while paused or stopped.
+- Pinch zoom and horizontal pan automatically pause a live plot; they remain
+  available in Paused and Stopped states.
 - The 60-second circular buffer requires no per-sample timestamp and correctly
   survives wraparound and discontinuities.
 - Starting recording writes the current buffer before live samples.
@@ -450,7 +460,8 @@ Connect chart interaction state:
 - Pause/Resume changes plotting only
 - Resume jumps to latest samples
 - Stop freezes acquisition and leaves retained data inspectable
-- gestures activate only while paused or stopped
+- the start of a pinch or pan while Live immediately switches plotting to
+  Paused; a gesture while stopped remains stopped
 - horizontal X-axis pan is bounded by buffer history
 - two-finger pinch changes X-axis scale only
 - preserve viewport/zoom through rotation
@@ -463,7 +474,8 @@ Tests:
 - Stop does not erase the buffer
 - pan cannot exceed retained bounds
 - pinch enforces defined minimum/maximum time windows
-- drag/pinch are ignored in live mode
+- beginning drag/pinch in live mode first pauses plotting, then applies the
+  gesture
 
 ### Stage 8 — Home navigation and ECG screen layouts
 
@@ -540,3 +552,107 @@ Performance validation:
   Stages 3, 5, and 7.
 - Stage 9 must use a real Polar H10; fake streams can validate protocol logic
   but cannot validate sustained BLE behavior.
+
+## 16. Implementation Deviation Log
+
+This section records choices that differ from or refine the original plan while
+Stages 1-6 are being implemented.
+
+### Polar Timestamp Handling
+
+- The original plan described ECG timestamps as nanoseconds but did not name
+  the Polar epoch.
+- Implemented timestamps retain Polar's **nanosecond representation relative
+  to 2000-01-01 UTC**.
+- Recording headers convert that timestamp to the 8-byte Unix epoch
+  millisecond value required by the `.bin` format.
+- The conversion is centralized in `EcgTimeIndex` and has unit coverage.
+
+### State and Buffer Publishing
+
+- Buffer snapshot publication is immediate on ECG sample arrival.
+- The Stage 6 implementation uses immutable snapshots for rendering, but no
+  wall-clock throttle is applied to the domain state yet.
+- If UI performance requires it, throttling can be introduced at the chart
+  observer or rendering layer without changing buffer contents.
+- Pausing and resuming plot state does not cancel or pause either Polar stream.
+
+### Acquisition Completion
+
+- A normally completed ECG flow is treated as a stream ending, preserving the
+  retained buffer and latest plot state.
+- Throwing stream errors and sensor-disconnect states remain explicit
+  acquisition errors.
+- `Stop` remains a separate, intentional acquisition stop and cancels the
+  ECG/HR collectors.
+
+### Recording Location and Filename
+
+- The implementation coordinator resolves the directory from
+  `Context.getExternalFilesDir(null)`, falling back to app-private files storage
+  if external app storage is unavailable.
+- The effective location is therefore
+  `Android/data/com.hrv.biofeedback/files/ecg_data/` on a normal external app
+  storage device.
+- Files use `yyyyMMdd-HHmmss.bin`, where `yyyyMMdd` is the date and `HHmmss`
+  is local record-start time.
+
+### Recording Writer
+
+- When live sample indices are not consecutive, the recorder writes the larger
+  of:
+  - the missing-index count; and
+  - the timestamp-derived missing-sample count.
+- This is a conservative choice intended to preserve elapsed time if Polar
+  sample indices and timestamps disagree.
+- Recording start writes the complete retained snapshot first, then appends
+  only later live samples.
+- Recording stop flushes and syncs the file before closing it.
+- A live recording write failure is surfaced in recording state, rather than
+  silently continuing.
+
+### Current Chart Viewport
+
+- The original plan called for a live viewport without fixed durations.
+- The current implementation derives live-window duration from the actual ECG
+  plot width and height rather than using a fixed portrait or landscape value.
+- The 1–5 ratio-based design is implemented as follows:
+  1. The chart reports its live plot width and height after layout.
+  2. The planner calculates `plotWidthPx / plotHeightPx`.
+  3. An 8-second portrait reference window is scaled proportionally against
+     the reference ECG plot aspect ratio.
+  4. The resulting live-window duration is clamped to 12–30 seconds.
+  5. The viewport recalculates after orientation or chart-size changes.
+- The portrait reference ratio comes from the supplied portrait mockup
+  (`438 / 696`, approximately `0.629`) and is not based on the phone's physical
+  screen dimensions.
+- The clamp deliberately removes unrealistic durations for unusually narrow
+  or unusually wide devices.
+- `setPlotAspectRatio()` and `setPlotSize()` are the layout-facing entry
+  points. `setOrientation()` remains available for orientation-only callers,
+  but actual plot dimensions should be preferred because they are more
+  accurate across different phones and safe-area layouts.
+- The clamp is intentionally applied after ratio scaling, so common portrait
+  and landscape layouts receive useful values while extreme layouts remain
+  bounded.
+- Live heartbeat scrolling still uses the 80% threshold and native H10 RR
+  interval when available, with native HR converted to an RR approximation as
+  fallback.
+
+### Chart Scale
+
+- The Stage 6 chart currently renders a fixed voltage range of approximately
+  +/-1 mV around zero.
+- This differs from the original plan's intentionally undecided Y scale.
+- It was chosen as a stable initial scale to prevent waveform amplitude from
+  moving due to autoscaling.
+- The fixed Y range should be revisited through device testing or moved to a
+  configurable setting if necessary.
+
+### Native Heart Rate
+
+- The chart displays the latest H10-native HR notification unchanged.
+- No ECG R-peak detector or calculated heart rate is used.
+- Where the H10 HR packet includes RR intervals, the latest native RR interval
+  is retained for heartbeat-sized viewport scrolling. Otherwise, RR timing
+  falls back to 60,000 divided by the native HR.
