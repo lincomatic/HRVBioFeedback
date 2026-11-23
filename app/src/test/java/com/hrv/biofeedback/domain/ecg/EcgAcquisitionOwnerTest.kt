@@ -15,6 +15,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
+import java.nio.file.Files
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class EcgAcquisitionOwnerTest {
@@ -107,6 +109,53 @@ class EcgAcquisitionOwnerTest {
         owner.start()
 
         assertEquals(1, dataSource.ecgSubscriptionCount)
+        owner.close()
+    }
+
+    @Test
+    fun `record toggle includes buffer and stops without stopping acquisition`() = runTest {
+        val directory = Files.createTempDirectory("ecg-stage-5").toFile()
+        val dataSource = FakeHrDataSource(
+            ecgSamples = listOf(
+                EcgSample(1_000_000_000, 100),
+                EcgSample(1_007_692_308, 200)
+            )
+        )
+        val owner = EcgAcquisitionOwner(dataSource, this, directory)
+
+        owner.start()
+        advanceUntilIdle()
+        owner.toggleRecording(1_735_689_123_456)
+
+        assertTrue(owner.sessionState.value.recording is EcgRecordingState.Recording)
+        assertTrue(owner.sessionState.value.acquisition is EcgAcquisitionState.Streaming)
+
+        owner.toggleRecording()
+
+        assertEquals(EcgRecordingState.Idle, owner.sessionState.value.recording)
+        assertTrue(owner.sessionState.value.acquisition is EcgAcquisitionState.Streaming)
+        assertTrue(directory.listFiles()?.isNotEmpty() == true)
+        directory.deleteRecursively()
+        owner.close()
+    }
+
+    @Test
+    fun `stop acquisition also finalizes active recording`() = runTest {
+        val directory = Files.createTempDirectory("ecg-stage-5-stop").toFile()
+        val dataSource = FakeHrDataSource(
+            ecgSamples = listOf(EcgSample(1_000_000_000, 100))
+        )
+        val owner = EcgAcquisitionOwner(dataSource, this, directory)
+
+        owner.start()
+        advanceUntilIdle()
+        owner.toggleRecording(1_735_689_123_456)
+        owner.stop()
+
+        assertEquals(EcgAcquisitionState.Stopped, owner.sessionState.value.acquisition)
+        assertEquals(EcgRecordingState.Idle, owner.sessionState.value.recording)
+        assertTrue(directory.listFiles()?.isNotEmpty() == true)
+        directory.deleteRecursively()
         owner.close()
     }
 

@@ -11,10 +11,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import java.io.File
 
 class EcgAcquisitionOwner(
     private val hrDataSource: HrDataSource,
-    scope: CoroutineScope? = null
+    scope: CoroutineScope? = null,
+    recordingDirectory: File? = null
 ) {
     private val ownerScope = scope ?: CoroutineScope(SupervisorJob())
     private val ownsScope = scope == null
@@ -31,6 +33,8 @@ class EcgAcquisitionOwner(
     private var connectionJob: Job? = null
     private var isStarted = false
     private var firstEcgSampleInSubscription = true
+    private var recordingWriter: EcgRecordingFileWriter? =
+        recordingDirectory?.let(::EcgRecordingFileWriter)
 
     fun start() {
         if (isStarted) return
@@ -47,6 +51,7 @@ class EcgAcquisitionOwner(
     }
 
     fun stop() {
+        stopRecording()
         isStarted = false
         ecgJob?.cancel()
         hrJob?.cancel()
@@ -74,6 +79,51 @@ class EcgAcquisitionOwner(
     fun clearBuffer() {
         buffer.clear()
         publishSnapshot()
+    }
+
+    fun startRecording(recordStartMillis: Long = System.currentTimeMillis()) {
+        val writer = recordingWriter
+            ?: throw IllegalStateException("ECG recording directory is not configured")
+        try {
+            val result = writer.start(snapshot.value, recordStartMillis)
+            _sessionState.value = _sessionState.value.copy(
+                recording = EcgRecordingState.Recording(
+                    fileName = result.fileName,
+                    firstSampleTimestampNanos = result.firstSampleTimestampNanos
+                )
+            )
+        } catch (t: Throwable) {
+            _sessionState.value = _sessionState.value.copy(
+                recording = EcgRecordingState.Error(
+                    t.message ?: "Unable to start ECG recording"
+                )
+            )
+        }
+    }
+
+    fun stopRecording() {
+        val writer = recordingWriter ?: return
+        if (!writer.isRecording) return
+        try {
+            writer.stop()
+            _sessionState.value = _sessionState.value.copy(
+                recording = EcgRecordingState.Idle
+            )
+        } catch (t: Throwable) {
+            _sessionState.value = _sessionState.value.copy(
+                recording = EcgRecordingState.Error(
+                    t.message ?: "Unable to finalize ECG recording"
+                )
+            )
+        }
+    }
+
+    fun toggleRecording(recordStartMillis: Long = System.currentTimeMillis()) {
+        if (recordingWriter?.isRecording == true) {
+            stopRecording()
+        } else {
+            startRecording(recordStartMillis)
+        }
     }
 
     fun close() {
@@ -133,6 +183,23 @@ class EcgAcquisitionOwner(
                             _sessionState.value = _sessionState.value.copy(
                                 acquisition = EcgAcquisitionState.Streaming
                             )
+                        }
+                        recordingWriter?.takeIf { it.isRecording }?.let { writer ->
+                            try {
+                                writer.appendLive(
+                                    EcgBufferSample(
+                                        sampleIndex = buffer.newestSampleIndex,
+                                        timestampNanos = sample.timestamp,
+                                        voltage = sample.voltage
+                                    )
+                                )
+                            } catch (t: Throwable) {
+                                _sessionState.value = _sessionState.value.copy(
+                                    recording = EcgRecordingState.Error(
+                                        t.message ?: "Unable to append ECG recording"
+                                    )
+                                )
+                            }
                         }
                         publishSnapshotIfNeeded()
                     }
