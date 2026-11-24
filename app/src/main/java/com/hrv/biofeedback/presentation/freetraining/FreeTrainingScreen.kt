@@ -55,6 +55,7 @@ import com.hrv.biofeedback.presentation.theme.TextSecondary
 fun FreeTrainingScreen(
     onBack: () -> Unit,
     onComplete: (Long) -> Unit,
+    onNavigateToDevice: () -> Unit,
     viewModel: FreeTrainingViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -100,8 +101,12 @@ fun FreeTrainingScreen(
             when (state) {
                 FreeSessionState.NOT_STARTED -> {
                     if (connectionState !is ConnectionState.Connected) {
-                        Text("Connect a sensor first", color = TextSecondary,
-                            modifier = Modifier.padding(top = 32.dp))
+                        Button(
+                            onClick = onNavigateToDevice,
+                            modifier = Modifier.padding(top = 32.dp)
+                        ) {
+                            Text("Connect sensor first")
+                        }
                     } else {
                         Text(
                             text = "Freeform Biofeedback",

@@ -20,6 +20,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hrv.biofeedback.domain.ecg.EcgBufferSnapshot
 import com.hrv.biofeedback.domain.ecg.EcgViewport
+import java.util.Locale
+import kotlin.math.abs
+import kotlin.math.max
 
 @Composable
 fun EcgChart(
@@ -67,10 +70,6 @@ fun EcgChart(
         val blue = Color(0xFF1687E8)
         val red = Color(0xFFE5394F)
 
-        val voltageMin = -1_000_000
-        val voltageMax = 1_000_000
-        val voltageRange = (voltageMax - voltageMin).toFloat()
-
         val majorX = (chartWidth / 8f)
         val majorY = (chartHeight / 8f)
         for (i in 0..8) {
@@ -109,23 +108,6 @@ fun EcgChart(
             )
         }
 
-        val labelStyle = TextStyle(
-            fontSize = 11.sp,
-            color = Color(0xFF788790)
-        )
-        val axisLabels = listOf("0.9", "0.6", "0.3", "0", "-0.3", "-0.6", "-0.9")
-        axisLabels.forEachIndexed { index, label ->
-            val y = top + chartHeight * index / (axisLabels.size - 1)
-            val result = textMeasurer.measure(label, style = labelStyle)
-            drawText(
-                result,
-                topLeft = Offset(
-                    chartLeft - result.size.width - 5.dp.toPx(),
-                    y - result.size.height / 2
-                )
-            )
-        }
-
         heartRateBpm?.let { bpm ->
             val hrText = textMeasurer.measure(
                 "$bpm",
@@ -157,6 +139,46 @@ fun EcgChart(
         if (snapshot.isEmpty) return@Canvas
 
         val viewportDuration = viewport.durationNanos.toDouble()
+        val visibleSamples = snapshot.samples.filter { sample ->
+            val timestampOffset = sample.timestampNanos - viewport.startTimestampNanos
+            timestampOffset >= 0 && timestampOffset <= viewportDuration
+        }
+        if (visibleSamples.isEmpty()) return@Canvas
+        val baselineVoltageUv = visibleSamples
+            .asSequence()
+            .map { it.voltage.toDouble() }
+            .average()
+            .toFloat()
+        val maxDeviationUv = visibleSamples.maxOf { sample ->
+            abs(sample.voltage.toFloat() - baselineVoltageUv)
+        }
+        val displayHalfRangeUv = max(
+            MIN_HALF_RANGE_UV,
+            maxDeviationUv * AUTO_RANGE_HEADROOM
+        )
+        val voltageRangeUv = displayHalfRangeUv * 2f
+
+        val labelStyle = TextStyle(
+            fontSize = 11.sp,
+            color = Color(0xFF788790)
+        )
+        val axisLabels = (0..6).map { index ->
+            val fraction = index / 6f
+            val valueUv = displayHalfRangeUv - (2f * displayHalfRangeUv * fraction)
+            formatMillivolts(valueUv / 1_000f)
+        }
+        axisLabels.forEachIndexed { index, label ->
+            val y = top + chartHeight * index / (axisLabels.size - 1)
+            val result = textMeasurer.measure(label, style = labelStyle)
+            drawText(
+                result,
+                topLeft = Offset(
+                    chartLeft - result.size.width - 5.dp.toPx(),
+                    y - result.size.height / 2
+                )
+            )
+        }
+
         val discontinuityIndices = snapshot.discontinuities
             .associate { it.beforeSampleIndex to it.afterSampleIndex }
         val segmentStartIndices = snapshot.segments
@@ -191,7 +213,8 @@ fun EcgChart(
             val xFraction = timestampOffset.toDouble() / viewportDuration
             val x = chartLeft + chartWidth * xFraction.toFloat()
             val normalized = (
-                (sample.voltage.toFloat() - voltageMin) / voltageRange
+                (sample.voltage.toFloat() - baselineVoltageUv + displayHalfRangeUv) /
+                    voltageRangeUv
                 ).coerceIn(0f, 1f)
             val y = top + chartHeight * (1f - normalized)
 
@@ -215,4 +238,12 @@ fun EcgChart(
             )
         }
     }
+}
+
+private const val MIN_HALF_RANGE_UV = 1_500f
+private const val AUTO_RANGE_HEADROOM = 1.15f
+
+private fun formatMillivolts(valueMv: Float): String {
+    val rounded = kotlin.math.round(valueMv * 10f) / 10f
+    return if (rounded == -0f) "0.0" else String.format(Locale.US, "%.1f", rounded)
 }

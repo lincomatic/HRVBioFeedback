@@ -58,6 +58,7 @@ import com.hrv.biofeedback.presentation.theme.TextSecondary
 @Composable
 fun LiveMetricsScreen(
     onBack: () -> Unit,
+    onNavigateToDevice: () -> Unit,
     viewModel: LiveMetricsViewModel = hiltViewModel()
 ) {
     val connectionState by viewModel.connectionState.collectAsStateWithLifecycle()
@@ -93,12 +94,12 @@ fun LiveMetricsScreen(
         ) {
             // Start/Stop
             if (connectionState !is ConnectionState.Connected) {
-                Text(
-                    "Connect a sensor first",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = TextSecondary,
+                Button(
+                    onClick = onNavigateToDevice,
                     modifier = Modifier.padding(top = 32.dp)
-                )
+                ) {
+                    Text("Connect sensor first")
+                }
             } else if (!isStreaming) {
                 Button(onClick = { viewModel.startStreaming() }) {
                     Icon(Icons.Default.PlayArrow, contentDescription = null)

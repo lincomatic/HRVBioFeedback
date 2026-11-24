@@ -48,20 +48,30 @@ fun NavGraph(navController: NavHostController) {
         }
 
         composable(NavRoutes.LiveMetrics.route) {
-            LiveMetricsScreen(onBack = { navController.popBackStack() })
+            LiveMetricsScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToDevice = { navController.navigate(NavRoutes.DeviceConnection.route) }
+            )
         }
 
         composable(NavRoutes.Ecg.route) {
-            EcgScreen(onBack = { navController.popBackStack() })
+            EcgScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToDevice = { navController.navigate(NavRoutes.DeviceConnection.route) }
+            )
         }
 
         composable(NavRoutes.MorningCheck.route) {
-            MorningCheckScreen(onBack = { navController.popBackStack() })
+            MorningCheckScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToDevice = { navController.navigate(NavRoutes.DeviceConnection.route) }
+            )
         }
 
         composable(NavRoutes.FreeTraining.route) {
             FreeTrainingScreen(
                 onBack = { navController.popBackStack() },
+                onNavigateToDevice = { navController.navigate(NavRoutes.DeviceConnection.route) },
                 onComplete = { sessionId ->
                     navController.popBackStack()
                     navController.navigate(NavRoutes.SessionReport.createRoute(sessionId))
@@ -76,6 +86,7 @@ fun NavGraph(navController: NavHostController) {
         composable(NavRoutes.RfAssessment.route) {
             RfAssessmentScreen(
                 onBack = { navController.popBackStack() },
+                onNavigateToDevice = { navController.navigate(NavRoutes.DeviceConnection.route) },
                 onComplete = { sessionId ->
                     navController.popBackStack()
                     navController.navigate(NavRoutes.SessionReport.createRoute(sessionId))
@@ -86,6 +97,7 @@ fun NavGraph(navController: NavHostController) {
         composable(NavRoutes.Training.route) {
             TrainingSessionScreen(
                 onBack = { navController.popBackStack() },
+                onNavigateToDevice = { navController.navigate(NavRoutes.DeviceConnection.route) },
                 onComplete = { sessionId ->
                     navController.popBackStack()
                     navController.navigate(NavRoutes.SessionReport.createRoute(sessionId))

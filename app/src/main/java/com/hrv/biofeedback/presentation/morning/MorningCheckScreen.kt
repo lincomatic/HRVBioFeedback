@@ -56,6 +56,7 @@ import java.util.Locale
 @Composable
 fun MorningCheckScreen(
     onBack: () -> Unit,
+    onNavigateToDevice: () -> Unit,
     viewModel: MorningCheckViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -125,11 +126,9 @@ fun MorningCheckScreen(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     if (connectionState !is ConnectionState.Connected) {
-                        Text(
-                            "Connect your sensor first",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.error
-                        )
+                        Button(onClick = onNavigateToDevice) {
+                            Text("Connect sensor first")
+                        }
                     } else {
                         Button(onClick = { viewModel.startCheck() }) {
                             Icon(Icons.Default.PlayArrow, contentDescription = null)

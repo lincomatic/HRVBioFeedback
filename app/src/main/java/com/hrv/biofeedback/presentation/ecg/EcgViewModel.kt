@@ -7,6 +7,7 @@ import com.hrv.biofeedback.domain.ecg.EcgSessionCoordinator
 import com.hrv.biofeedback.domain.ecg.EcgSessionState
 import com.hrv.biofeedback.domain.ecg.EcgBufferSnapshot
 import com.hrv.biofeedback.domain.ecg.EcgViewport
+import com.hrv.biofeedback.domain.model.ConnectionState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,6 +23,9 @@ class EcgViewModel @Inject constructor(
 
     val snapshot: StateFlow<EcgBufferSnapshot>
         get() = coordinator.snapshot
+
+    val connectionState: StateFlow<ConnectionState>
+        get() = coordinator.connectionState
 
     private val _viewport = MutableStateFlow(
         EcgViewport(

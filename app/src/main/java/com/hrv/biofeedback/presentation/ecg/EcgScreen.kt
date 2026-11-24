@@ -5,7 +5,6 @@ import android.content.Intent
 import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,12 +13,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -40,7 +39,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -49,15 +47,18 @@ import com.hrv.biofeedback.domain.ecg.EcgAcquisitionState
 import com.hrv.biofeedback.domain.ecg.EcgPlotState
 import com.hrv.biofeedback.domain.ecg.EcgRecordingState
 import com.hrv.biofeedback.domain.ecg.EcgViewportPlanner
+import com.hrv.biofeedback.domain.model.ConnectionState
 import com.hrv.biofeedback.presentation.common.EcgChart
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun EcgScreen(
     onBack: () -> Unit,
+    onNavigateToDevice: () -> Unit,
     viewModel: EcgViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
+    val connectionState by viewModel.connectionState.collectAsStateWithLifecycle()
     val sessionState by viewModel.sessionState.collectAsStateWithLifecycle()
     val snapshot by viewModel.snapshot.collectAsStateWithLifecycle()
     val plotViewport by viewModel.viewport.collectAsStateWithLifecycle()
@@ -65,6 +66,7 @@ fun EcgScreen(
     val configuration = LocalConfiguration.current
     val isLandscape =
         configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val isConnected = connectionState is ConnectionState.Connected
 
     LaunchedEffect(isLandscape) {
         viewportPlanner.setOrientation(isLandscape)
@@ -88,9 +90,11 @@ fun EcgScreen(
         }
     }
 
-    DisposableEffect(Unit) {
-        startEcgForegroundService(context)
-        viewModel.start()
+    DisposableEffect(isConnected) {
+        if (isConnected) {
+            startEcgForegroundService(context)
+            viewModel.start()
+        }
         onDispose {
             // Acquisition and recording deliberately remain owned by the singleton
             // service/coordinator until Stop or process shutdown.
@@ -110,11 +114,15 @@ fun EcgScreen(
                     }
                 },
                 actions = {
-                    val streaming =
-                        sessionState.acquisition is EcgAcquisitionState.Streaming
+                    val (statusLabel, statusColor) = when {
+                        !isConnected -> "DISCONNECTED" to Color(0xFFB8878D)
+                        sessionState.acquisition is EcgAcquisitionState.Streaming ->
+                            "LIVE" to Color(0xFF64DB9B)
+                        else -> "STOPPED" to Color(0xFFB8878D)
+                    }
                     Text(
-                        text = if (streaming) "LIVE" else "STOPPED",
-                        color = if (streaming) Color(0xFF64DB9B) else Color(0xFFB8878D),
+                        text = statusLabel,
+                        color = statusColor,
                         modifier = Modifier.padding(end = 16.dp),
                         style = MaterialTheme.typography.labelLarge
                     )
@@ -122,6 +130,37 @@ fun EcgScreen(
             )
         }
     ) { padding ->
+        val onPauseResumeAction = {
+            when (sessionState.plot) {
+                EcgPlotState.LIVE -> viewModel.togglePlot()
+                EcgPlotState.PAUSED -> {
+                    viewportPlanner.reset()
+                    viewModel.togglePlot()
+                    viewModel.updateViewport(
+                        viewportPlanner.liveViewport(
+                            snapshot,
+                            sessionState.heartRateBpm,
+                            sessionState.latestRrIntervalMs
+                        )
+                    )
+                }
+                EcgPlotState.STOPPED -> {
+                    if (isConnected) {
+                        viewportPlanner.reset()
+                        startEcgForegroundService(context)
+                        viewModel.start()
+                        viewModel.updateViewport(
+                            viewportPlanner.liveViewport(
+                                snapshot,
+                                sessionState.heartRateBpm,
+                                sessionState.latestRrIntervalMs
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
         if (isLandscape) {
             LandscapeEcgContent(
                 modifier = Modifier
@@ -130,7 +169,7 @@ fun EcgScreen(
                 sessionState = sessionState,
                 snapshot = snapshot,
                 viewport = plotViewport,
-                onPauseResume = viewModel::togglePlot,
+                onPauseResume = onPauseResumeAction,
                 onStop = {
                     viewModel.stop()
                     stopEcgForegroundService(context)
@@ -150,7 +189,9 @@ fun EcgScreen(
                     viewModel.updateViewport(
                         viewportPlanner.pinchZoom(scale, anchor, snapshot)
                     )
-                }
+                },
+                isConnected = isConnected,
+                onConnectSensor = onNavigateToDevice
             )
         } else {
             PortraitEcgContent(
@@ -160,7 +201,7 @@ fun EcgScreen(
                 sessionState = sessionState,
                 snapshot = snapshot,
                 viewport = plotViewport,
-                onPauseResume = viewModel::togglePlot,
+                onPauseResume = onPauseResumeAction,
                 onStop = {
                     viewModel.stop()
                     stopEcgForegroundService(context)
@@ -178,7 +219,9 @@ fun EcgScreen(
                     viewModel.updateViewport(
                         viewportPlanner.pinchZoom(scale, anchor, snapshot)
                     )
-                }
+                },
+                isConnected = isConnected,
+                onConnectSensor = onNavigateToDevice
             )
         }
     }
@@ -195,7 +238,9 @@ private fun PortraitEcgContent(
     onRecord: () -> Unit,
     onGestureStart: () -> Unit,
     onPan: (Float) -> Unit,
-    onPinch: (Float, Float) -> Unit
+    onPinch: (Float, Float) -> Unit,
+    isConnected: Boolean,
+    onConnectSensor: () -> Unit
 ) {
     Column(
         modifier = modifier
@@ -222,34 +267,43 @@ private fun PortraitEcgContent(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            val pauseButtonShowsResume =
+                sessionState.plot == EcgPlotState.PAUSED ||
+                    sessionState.plot == EcgPlotState.STOPPED
             EcgControl(
-                label = if (sessionState.plot == EcgPlotState.PAUSED) "Resume" else "Pause",
-                icon = if (sessionState.plot == EcgPlotState.PAUSED)
+                label = if (pauseButtonShowsResume) "Resume" else "Pause",
+                icon = if (pauseButtonShowsResume)
                     Icons.Filled.PlayArrow else Icons.Filled.Pause,
                 color = Color(0xFF1B3E52),
                 modifier = Modifier.weight(1f),
                 onClick = onPauseResume,
-                enabled = sessionState.acquisition !is EcgAcquisitionState.Stopped
+                enabled = isConnected
             )
             EcgControl(
                 label = "Stop",
                 icon = Icons.Filled.Stop,
                 color = Color(0xFF46262D),
                 modifier = Modifier.weight(1f),
-                onClick = onStop
+                onClick = onStop,
+                enabled = isConnected
             )
             EcgControl(
                 label = if (sessionState.recording is EcgRecordingState.Recording)
                     "Stop Rec" else "Record",
-                icon = Icons.Filled.Stop,
+                icon = Icons.Filled.FiberManualRecord,
                 color = Color(0xFF183F34),
                 modifier = Modifier.weight(1f),
                 onClick = onRecord,
-                enabled = sessionState.acquisition !is EcgAcquisitionState.Stopped
+                enabled = isConnected &&
+                    sessionState.acquisition !is EcgAcquisitionState.Stopped
             )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
+        if (!isConnected) {
+            Button(onClick = onConnectSensor) { Text("Connect sensor first") }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
         EcgInfoText(sessionState)
     }
 }
@@ -265,7 +319,9 @@ private fun LandscapeEcgContent(
     onRecord: () -> Unit,
     onGestureStart: () -> Unit,
     onPan: (Float) -> Unit,
-    onPinch: (Float, Float) -> Unit
+    onPinch: (Float, Float) -> Unit,
+    isConnected: Boolean,
+    onConnectSensor: () -> Unit
 ) {
     Row(
         modifier = modifier
@@ -276,31 +332,39 @@ private fun LandscapeEcgContent(
             modifier = Modifier.width(180.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            val pauseButtonShowsResume =
+                sessionState.plot == EcgPlotState.PAUSED ||
+                    sessionState.plot == EcgPlotState.STOPPED
             EcgControl(
-                label = if (sessionState.plot == EcgPlotState.PAUSED) "Resume" else "Pause",
-                icon = if (sessionState.plot == EcgPlotState.PAUSED)
+                label = if (pauseButtonShowsResume) "Resume" else "Pause",
+                icon = if (pauseButtonShowsResume)
                     Icons.Filled.PlayArrow else Icons.Filled.Pause,
                 color = Color(0xFF1B3E52),
                 modifier = Modifier.fillMaxWidth(),
                 onClick = onPauseResume,
-                enabled = sessionState.acquisition !is EcgAcquisitionState.Stopped
+                enabled = isConnected
             )
             EcgControl(
                 label = "Stop",
                 icon = Icons.Filled.Stop,
                 color = Color(0xFF46262D),
                 modifier = Modifier.fillMaxWidth(),
-                onClick = onStop
+                onClick = onStop,
+                enabled = isConnected
             )
             EcgControl(
                 label = if (sessionState.recording is EcgRecordingState.Recording)
                     "Stop Rec" else "Record",
-                icon = Icons.Filled.Stop,
+                icon = Icons.Filled.FiberManualRecord,
                 color = Color(0xFF183F34),
                 modifier = Modifier.fillMaxWidth(),
                 onClick = onRecord,
-                enabled = sessionState.acquisition !is EcgAcquisitionState.Stopped
+                enabled = isConnected &&
+                    sessionState.acquisition !is EcgAcquisitionState.Stopped
             )
+            if (!isConnected) {
+                Button(onClick = onConnectSensor) { Text("Connect sensor first") }
+            }
             EcgInfoText(sessionState)
         }
 
@@ -337,7 +401,9 @@ private fun EcgControl(
         enabled = enabled,
         colors = ButtonDefaults.buttonColors(
             containerColor = color,
-            disabledContainerColor = color.copy(alpha = 0.45f)
+            contentColor = Color.White,
+            disabledContainerColor = color,
+            disabledContentColor = Color.White.copy(alpha = 0.75f)
         )
     ) {
         Icon(icon, contentDescription = label)

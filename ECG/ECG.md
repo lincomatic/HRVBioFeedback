@@ -641,13 +641,13 @@ Stages 1-6 are being implemented.
 
 ### Chart Scale
 
-- The Stage 6 chart currently renders a fixed voltage range of approximately
-  +/-1 mV around zero.
-- This differs from the original plan's intentionally undecided Y scale.
-- It was chosen as a stable initial scale to prevent waveform amplitude from
-  moving due to autoscaling.
-- The fixed Y range should be revisited through device testing or moved to a
-  configurable setting if necessary.
+- The chart now derives its Y scale from the visible in-viewport ECG samples.
+- It first removes the live DC baseline by centering around the in-viewport
+  mean voltage.
+- It then applies autoscale with headroom: half-range is
+  `max(1500 uV, maxDeviationFromBaseline * 1.15)`.
+- Left-axis labels are generated from the active plotted range (in mV), so
+  labels now match the real plotted values.
 
 ### Native Heart Rate
 
@@ -672,11 +672,54 @@ Stages 1-6 are being implemented.
   - landscape controls in a left-side rail.
 - A `EcgViewModel` observes the singleton `EcgSessionCoordinator`; it does not
   own or restart Polar stream subscriptions.
-- Entering the ECG screen starts the foreground service and requests acquisition
-  through the singleton coordinator.
+- Entering the ECG screen starts ECG acquisition only when the sensor is
+  connected; otherwise the screen shows a connect-sensor prompt and keeps ECG
+  acquisition stopped.
+- The connect-sensor prompt is an explicit button that routes directly to the
+  device-connection screen.
 - Leaving the screen while acquisition remains active does not cancel the
   foreground service on that screen's composition-disposal callback.
 - The foreground notification currently reopens `MainActivity`; direct
   notification routing to the `ecg` route is a release-hardening follow-up
   rather than a dependency of the chart-domain implementation.
 - The notification text distinguishes ECG-only streaming from active recording.
+- The Pause/Resume control now reflects `STOPPED` by switching to the `Resume`
+  visual state while remaining disabled until acquisition is started again.
+
+## 17. Stage 9 Validation Status
+
+### Automated Validation Completed
+
+- Full `debug` unit test suite: passed.
+- ECG domain tests for acquisition, buffer, timing, recording, viewport, and
+  gesture behavior: passed.
+- Debug APK build: passed.
+- Benchmark APK build: passed, including R8/minification and vital lint.
+- Diff whitespace check: passed.
+- Source audit confirmed that ECG-mode domain code has no reference to
+  `HrvProcessor`, HRV metric calculation, or ECG-driven R-peak/HR calculation.
+- App manifest and foreground-service wiring confirm:
+  - `connectedDevice` foreground-service type;
+  - ECG foreground start/stop actions;
+  - app-specific external `ecg_data` directory resolution.
+
+### Device Validation Still Required
+
+Stage 9 cannot be completed without an installed app build and a real or
+instrumented Polar H10. The following checks remain:
+
+- sustained 130 Hz ECG delivery and native 1 Hz HR delivery;
+- real Polar epoch timestamp and packet-gap behavior;
+- 60-second circular-buffer rollover;
+- natural and induced packet-loss discontinuities;
+- retroactive recording, Record/Stop Record, and new-file cycles;
+- app-specific external-storage file visibility and binary decoding;
+- background and locked-phone acquisition/recording;
+- portrait/landscape rotation and retained recording state;
+- pause/resume, gesture-to-Pause, Stop, pan, pinch, and viewport bounds;
+- 15-minute memory/performance and duplicate-subscription checks;
+- foreground notification behavior and battery/background restrictions.
+
+Until these checks are run on target hardware, Stage 9 is **partially
+complete**: build, unit logic, and source integration are validated, while
+live BLE, lock, storage-device, and sustained-performance behavior is pending.

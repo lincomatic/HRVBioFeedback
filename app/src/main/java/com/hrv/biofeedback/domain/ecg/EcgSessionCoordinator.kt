@@ -1,6 +1,7 @@
 package com.hrv.biofeedback.domain.ecg
 
 import android.content.Context
+import com.hrv.biofeedback.domain.model.ConnectionState
 import com.hrv.biofeedback.domain.repository.HrDataSource
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -16,6 +17,7 @@ class EcgSessionCoordinator @Inject constructor(
     @ApplicationContext context: Context,
     hrDataSource: HrDataSource
 ) {
+    private val source = hrDataSource
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val externalFilesDirectory =
         context.getExternalFilesDir(null) ?: context.filesDir
@@ -32,6 +34,9 @@ class EcgSessionCoordinator @Inject constructor(
 
     val snapshot: StateFlow<EcgBufferSnapshot>
         get() = owner.snapshot
+
+    val connectionState: StateFlow<ConnectionState>
+        get() = source.connectionState
 
     fun start() = owner.start()
 

@@ -55,6 +55,7 @@ import com.hrv.biofeedback.presentation.theme.TextSecondary
 fun RfAssessmentScreen(
     onBack: () -> Unit,
     onComplete: (Long) -> Unit,
+    onNavigateToDevice: () -> Unit,
     viewModel: RfAssessmentViewModel = hiltViewModel()
 ) {
     val assessmentState by viewModel.assessmentState.collectAsStateWithLifecycle()
@@ -136,11 +137,9 @@ fun RfAssessmentScreen(
                     Spacer(modifier = Modifier.height(24.dp))
 
                     if (connectionState !is ConnectionState.Connected) {
-                        Text(
-                            text = "Please connect a sensor first",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.error
-                        )
+                        Button(onClick = onNavigateToDevice) {
+                            Text("Connect sensor first")
+                        }
                     } else {
                         Button(
                             onClick = { viewModel.startAssessment() },

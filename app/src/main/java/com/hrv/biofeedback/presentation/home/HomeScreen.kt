@@ -15,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.List
@@ -269,7 +270,7 @@ fun HomeScreen(
                 )
                 ActionCard(
                     title = "ECG",
-                    icon = Icons.Filled.ShowChart,
+                    icon = Icons.Filled.Favorite,
                     color = HfPowerColor,
                     onClick = onNavigateToEcg,
                     modifier = Modifier.weight(1f)

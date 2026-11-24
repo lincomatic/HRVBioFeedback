@@ -49,6 +49,28 @@ class EcgViewportTest {
     }
 
     @Test
+    fun `live viewport realigns when previous range used different clock base`() {
+        val planner = EcgViewportPlanner(liveWindowSeconds = 8.0)
+        val nowBasedStart = System.nanoTime()
+        planner.pausedViewport(
+            start = nowBasedStart,
+            end = nowBasedStart + 8 * EcgTimeIndex.NANOS_PER_SECOND
+        )
+        val polarEpochLikeStart = 815_000_000_000_000_000L
+        val snapshot = snapshotFrom(
+            startIndex = 0,
+            startTimestamp = polarEpochLikeStart,
+            count = 260
+        )
+
+        val viewport = planner.liveViewport(snapshot, heartRateBpm = 70, rrIntervalMs = 857)
+
+        assertTrue(viewport.startTimestampNanos >= snapshot.samples.first().timestampNanos)
+        assertTrue(viewport.endTimestampNanos >= snapshot.samples.last().timestampNanos)
+        assertEquals(8 * EcgTimeIndex.NANOS_PER_SECOND, viewport.durationNanos)
+    }
+
+    @Test
     fun `paused viewport preserves selected time range`() {
         val planner = EcgViewportPlanner()
 

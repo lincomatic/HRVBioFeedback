@@ -62,6 +62,7 @@ import com.hrv.biofeedback.presentation.theme.TextSecondary
 fun TrainingSessionScreen(
     onBack: () -> Unit,
     onComplete: (Long) -> Unit,
+    onNavigateToDevice: () -> Unit,
     viewModel: TrainingSessionViewModel = hiltViewModel()
 ) {
     val sessionState by viewModel.sessionState.collectAsStateWithLifecycle()
@@ -129,12 +130,12 @@ fun TrainingSessionScreen(
             when {
                 connectionState !is ConnectionState.Connected && sessionState == SessionState.NOT_STARTED -> {
                     // Not connected
-                    Text(
-                        text = "Please connect a heart rate sensor first",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = TextSecondary,
+                    Button(
+                        onClick = onNavigateToDevice,
                         modifier = Modifier.padding(top = 64.dp)
-                    )
+                    ) {
+                        Text("Connect sensor first")
+                    }
                 }
 
                 sessionState == SessionState.NOT_STARTED -> {

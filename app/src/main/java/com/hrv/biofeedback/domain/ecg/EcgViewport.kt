@@ -73,8 +73,13 @@ class EcgViewportPlanner(
             val start = current?.startTimestampNanos ?: newest
             return EcgViewport(start, start + liveWindowNanos)
         }
-        if (current == null) {
-            viewport = EcgViewport(oldest!!, oldest + liveWindowNanos)
+        val oldestTimestamp = oldest ?: newest
+        if (current == null ||
+            current.endTimestampNanos < oldestTimestamp ||
+            current.startTimestampNanos > newest
+        ) {
+            val start = (newest - liveWindowNanos).coerceAtLeast(oldestTimestamp)
+            viewport = EcgViewport(start, start + liveWindowNanos)
             return viewport!!
         }
 
